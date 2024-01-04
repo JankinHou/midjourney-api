@@ -2,11 +2,11 @@ import asyncio
 import re
 from typing import Dict, Union, Any
 
-from discord import Message
+from discord import Message, components, ActionRow
 
 from app.handler import PROMPT_PREFIX, PROMPT_SUFFIX
 from lib.api.callback import queue_release, callback
-from task.bot._typing import CallbackData, Attachment, Embed
+from task.bot._typing import CallbackData, Attachment, Embed, Action
 
 TRIGGER_ID_PATTERN = f"{PROMPT_PREFIX}(\w+?){PROMPT_SUFFIX}"  # 消息 ID 正则
 
@@ -33,6 +33,21 @@ def match_trigger_id(content: str) -> Union[str, None]:
     match = re.findall(TRIGGER_ID_PATTERN, content)
     return match[0] if match else None
 
+# get_action 获取支持的actions列表
+def get_action(message: Message) -> list[Action]:
+    res = []
+    pattern = r'MJ::JOB::(pan_.*[a-zA-Z])::1::.*[a-zA-Z]+'
+    for component in message.components:
+        if isinstance(component, ActionRow):
+            for action in component.children:
+                if isinstance(action, components.Button) and action.custom_id:
+                    label = action.label if action.label else pattern.match(
+                        action.custom_id).group(1) if pattern.match(action.custom_id) else ""
+                    if label != "":
+                        res.append(
+                            Action(label=label, custom_id=action.custom_id))
+    return res
+
 
 async def callback_trigger(trigger_id: str, trigger_status: str, message: Message):
     await callback(CallbackData(
@@ -44,6 +59,7 @@ async def callback_trigger(trigger_id: str, trigger_status: str, message: Messag
             for attachment in message.attachments
         ],
         embeds=[],
+        actions=get_action(message),
         trigger_id=trigger_id,
     ))
 
@@ -61,5 +77,6 @@ async def callback_describe(trigger_status: str, message: Message, embed: Dict[s
             Embed(**embed)
         ],
         trigger_id=trigger_id,
+        actions=get_action(message)
     ))
     return trigger_id

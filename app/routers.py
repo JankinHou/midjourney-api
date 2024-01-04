@@ -16,6 +16,7 @@ from .schema import (
     TriggerDescribeIn,
     SendMessageResponse,
     SendMessageIn,
+    ActionTriggerIn,
 )
 
 router = APIRouter()
@@ -66,6 +67,15 @@ async def describe(body: TriggerDescribeIn):
     return {"trigger_id": trigger_id, "trigger_type": trigger_type}
 
 
+@router.post("/action", response_model=TriggerResponse)
+async def action(body: ActionTriggerIn):
+    trigger_id = body.trigger_id
+    trigger_type = TriggerType.action.value
+
+    taskqueue.put(trigger_id, discord.trigger_action, **body.dict())
+    return {"trigger_id": trigger_id, "trigger_type": trigger_type}
+
+
 @router.post("/upload", response_model=UploadResponse)
 async def upload_attachment(file: UploadFile):
     if not file.content_type.startswith("image/"):
@@ -97,7 +107,13 @@ async def send_message(body: SendMessageIn):
 @router.post("/queue/release", response_model=TriggerResponse)
 async def queue_release(body: QueueReleaseIn):
     """bot 清除队列任务"""
-    taskqueue.pop(body.trigger_id)
+    # taskqueue.pop(body.trigger_id)
+    try:
+        if len(taskqueue._concur_queue) > 0:
+            taskqueue.pop(body.trigger_id)
+
+    except Exception as e:
+        print(e)
 
     return body
 
@@ -111,6 +127,7 @@ async def solo_variation(body: TriggerUVIn):
     # 返回结果
     return {"trigger_id": trigger_id, "trigger_type": trigger_type}
 
+
 @router.post("/solo_low_variation", response_model=TriggerResponse)
 async def solo_low_variation(body: TriggerUVIn):
     trigger_id = body.trigger_id
@@ -120,6 +137,7 @@ async def solo_low_variation(body: TriggerUVIn):
     # 返回结果
     return {"trigger_id": trigger_id, "trigger_type": trigger_type}
 
+
 @router.post("/solo_high_variation", response_model=TriggerResponse)
 async def solo_high_variation(body: TriggerUVIn):
     trigger_id = body.trigger_id
@@ -128,6 +146,7 @@ async def solo_high_variation(body: TriggerUVIn):
 
     # 返回结果
     return {"trigger_id": trigger_id, "trigger_type": trigger_type}
+
 
 @router.post("/expand", response_model=TriggerResponse)
 async def expand(body: TriggerExpandIn):
@@ -147,4 +166,3 @@ async def zoomout(body: TriggerZoomOutIn):
 
     # 返回结果
     return {"trigger_id": trigger_id, "trigger_type": trigger_type}
-

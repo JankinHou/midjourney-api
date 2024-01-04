@@ -30,6 +30,7 @@ class TriggerExpandIn(BaseModel):
 
     trigger_id: str  # 供业务定位触发ID，/trigger/imagine 接口返回的 trigger_id
 
+
 class TriggerZoomOutIn(BaseModel):
     msg_id: str
     msg_hash: str
@@ -67,3 +68,9 @@ class SendMessageIn(BaseModel):
 class SendMessageResponse(BaseModel):
     message: str = "success"
     picurl: str
+
+
+class ActionTriggerIn(BaseModel):
+    trigger_id: str = ""
+    custom_id: str = ""
+    msg_id: str = ""
